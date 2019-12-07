@@ -1,0 +1,362 @@
+************************Commands Text File for HANA Stonith****************************************
+
+
+
+*************Exercise 1****************************************************************************
+
+*********************************Task 1: Configure OS on Azure VMs running Linux************************************************
+	
+**********************************Activate the SUSE Linux************************************************
+	
+		Step 9:			SUSEConnect -r 4FFDCC436AEF3C -e naarayanaa.lk@paripoorna.in
+
+
+
+****************************Mount the Software	Binaries***********************************************************
+
+
+**************************************South India*********************************************************************
+
+	sudo mount -t cifs //others2019.file.core.windows.net/softwares /software  -o vers=3.0,username=others2019,password=UzuOqP7UEjAwjNRlxsC9GI7vmjcFom5ib/misaSkAVBCJzVvUdb44R+5fKw6cMCFLf23EcTfnVW13WFwi8pCtQ==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+********************************East US2*******************************
+
+	sudo mount -t cifs //softwarees.file.core.windows.net/softwares  /software  -o vers=3.0,username=softwarees,password=rI4pZWk5IvYU4rt93YjX9fikJBBPPaiXVmhu07rBzHaaFE9s2enYyiqodjvhtuehYi6rJyAmiMGokzKazy+KHg==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+********************************Australia East*******************************
+
+
+	sudo mount -t cifs //softwareae.file.core.windows.net/softwareae /software  -o vers=3.0,username=softwareae,password=+ZcJPIUXEIx72vrVMKsVSjoFtbUo/RPEDzH89oNKNSl99/VfgSE/M/fJWMfwRurrALjQot8Bn2G8KChhSwSOUQ==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+********************************UK South*************************************
+
+
+	sudo mount -t cifs //softwareuks.file.core.windows.net/softwareuk /software  -o vers=3.0,username=softwareuks,password=qQqIGEt6qc/PM5zlgKP5nQZJurS76SzNXukL4mDP2tb8QG9YgNsqwZj2iOXxib3qI59Uj0VX7TswwOCpxjNU8A==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+********************************Southeast Asia**********************************
+
+	sudo mount -t cifs //softwaresilt.file.core.windows.net/software  /software  -o vers=3.0,username=softwaresilt,password=H5tUmravg0/jEOg6p9RRHOQ6i0aHEEPtcglggRJXc/x5nthYdR4Isi4pL4OvoMFSiddAzKi7RbuRExW1L5HoPw==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+********************************West US2****************************************
+
+	sudo mount -t cifs //softwarewus.file.core.windows.net/softwarewus2  /software  -o vers=3.0,username=softwarewus,password=y31E0viKAjBCFXJEoVQmh7PJS6026fQsNOkDY+RRKPHp4kR5O8y0S1bvqxJMsoqMQU3c5aDcmp0FJTAJ9erJrg==,dir_mode=0777,file_mode=0777,sec=ntlmssp
+
+
+
+***********************************************Copy the HANA Binaries into Local Machine*******************************************************	
+
+For South India:
+
+	cp -rf /software/51052325/DATA_UNITS/ /binaries/
+
+	
+For others:
+
+	cp -rf /software/DATA_UNITS/ /binaries/
+		
+*******************************************Task2: Update the Package Manager & Install Fencing Agent***********************************************************************************
+	
+		Step 1: 		yast
+		
+		Step 12:		zypper update
+		
+		Step 13:        zypper install sle-ha-release fence-agents
+		
+**************************************Task 3:  Configure Passwordless SSH between 2 linux VM’s********************************************
+	
+***************************Step 4:	Copy the Auth Key from s03-db0 to s03-db-1**************************************************
+		
+		cat  .ssh/id_rsa.pub  |  ssh  root@s03-db-1  'cat  >>  .ssh/authorized_keys'
+		
+				
+***************************Step 6:	Copy the Auth Key from s03-db1 to s03-db-0**************************************************	
+
+
+		cat  .ssh/id_rsa.pub  |  ssh  root@s03-db-0  'cat  >>  .ssh/authorized_keys'
+		
+			
+************************************Exercise 2: Configure clustering on Azure VMs running Linux************************************
+
+	Step 1:  Initiate the Cluster
+	
+				ha-cluster-init
+				
+				>y
+				>n
+				>Local IP Address < ifconfig >
+				>Mutlicast IP Address ( 224.0.0.1 ) < netstat -ng >
+			>[accept default]
+			>n
+			>n
+	
+	Step 2:	Join the Cluster
+	
+				ha-cluster-join
+				
+				
+**************************************Task 2: Configure corosync ****************************************************************			
+				
+	
+	Step 1:	Add the Nodes in config File:
+	
+	vim /etc/corosync/corosync.conf
+
+	transport:udpu
+} 
+nodelist {
+	node {
+		ring0_addr: 10.0.0.5
+		nodeid:     1
+	}	
+	node {
+		ring0_addr: 10.0.0.4
+		nodeid:     2
+	}
+
+
+service corosync restart
+
+service corosync status
+	
+	
+	
+	Step 2: Reset the Password
+	
+				passwd hacluster
+				
+		
+
+***********************Exercise 3: Install SAP HANA********************************************************************************
+
+**********************************Task 1#Add Storage Disk for hana Installation*****************************************************
+
+			mkdir  /hana
+
+			fdisk /dev/sdc
+			>n
+			>p
+			>[Accept Default]
+			>[Accept Default]
+			>w
+
+			mkfs.ext4 /dev/sdc1
+
+		
+			mount /dev/sdc1	/hana
+
+*************************************#Mount Storage Permanent*******************************************************************
+
+		vim /etc/fstab
+
+			/dev/sdc1       /hana   ext4    defaults        1 2
+	
+		
+
+**********************************Install HANA Database****************************************************************		
+
+**************************Switch the Directory*************************************************************************
+
+cd /binaries/DATA_UNITS/HDB_SERVER_LINUX_X86_64
+
+
+*********************************RUN HDBLCM***************************************
+
+		./hdblcm
+		
+# Exercise 4 : Azure Storage Configuration
+---------------------------
+Section 4.7 (To Download HANA Studio)
+
+DisplayName:software
+
+StorageAccount Name:others2019
+
+Key:UzuOqP7UEjAwjNRlxsC9GI7vmjcFom5ib/misaSkAVBCJzVvUdb44R+5fKw6cMCFLf23EcTfnVW13WFwi8pCtQ==
+
+
+
+# Task 4 :
+#6 Execute from s03-db-0
+---------------------------
+su - s03adm
+
+#Sending DAT File
+---------------------------
+cd /usr/sap/S03/SYS/global/security/rsecssfs/data/
+scp SSFS_S03.DAT s03adm@s03-db-1:/usr/sap/S03/SYS/global/security/rsecssfs/data/
+
+#Sending KEY File
+---------------------------
+cd /usr/sap/S03/SYS/global/security/rsecssfs/key/
+scp SSFS_S03.KEY s03adm@s03-db-1:/usr/sap/S03/SYS/global/security/rsecssfs/key/
+
+Exercise 5 Configure cluster framework
+Task 1 : Configure Stonith
+---------------------------
+vi crm-defaults.txt
+
+property $id="cib-bootstrap-options" \
+  no-quorum-policy="ignore" \
+  stonith-enabled="true" \
+  stonith-action="reboot" \
+  stonith-timeout="150s"
+rsc_defaults $id="rsc-options" \
+  resource-stickiness="1000" \
+  migration-threshold="5000"
+op_defaults $id="op-options" \
+  timeout="600"
+
+
+crm configure load update crm-defaults.txt
+crm status
+
+vi crm-fencing.txt
+
+primitive rsc_st_azure_1 stonith:fence_azure_arm \
+    params subscriptionId="subscription_id" resourceGroup="hana-s03-RG" tenantId="tenant _id" login="login_id" passwd="password"
+ 
+primitive rsc_st_azure_2 stonith:fence_azure_arm \
+    params subscriptionId="subscription_id" resourceGroup="hana-s03-RG" tenantId="tenant _id" login="login_id" passwd="password"
+ 
+colocation col_st_azure -2000: rsc_st_azure_1:Started rsc_st_azure_2:Started
+
+
+crm configure load update crm-fencing.txt
+
+
+Task 5 : SAP Hana Toplogy
+---------------------------
+vim crm-saphanatop.txt
+
+primitive rsc_SAPHanaTopology_S03_HDB00 ocf:suse:SAPHanaTopology \
+    operations $id="rsc_sap2_S03_HDB00-operations" \
+    op monitor interval="10" timeout="600" \
+    op start interval="0" timeout="600" \
+    op stop interval="0" timeout="300" \
+    params SID="S03" InstanceNumber="00"
+ 
+clone cln_SAPHanaTopology_S03_HDB00 rsc_SAPHanaTopology_S03_HDB00 \
+    meta is-managed="true" clone-node-max="1" target-role="Started" interleave="true"
+
+crm configure load update crm-saphanatop.txt
+
+Task 6: Cluster Resource A
+
+vim crm-saphana.txt
+
+primitive rsc_SAPHana_S03_HDB00 ocf:suse:SAPHana \
+    operations $id="rsc_sap_S03_HDB00-operations" \
+    op start interval="0" timeout="3600" \
+    op stop interval="0" timeout="3600" \
+    op promote interval="0" timeout="3600" \
+    op monitor interval="60" role="Master" timeout="700" \
+    op monitor interval="61" role="Slave" timeout="700" \
+    params SID="S03" InstanceNumber="00" PREFER_SITE_TAKEOVER="true" \
+    DUPLICATE_PRIMARY_TIMEOUT="7200" AUTOMATED_REGISTER="false"
+ 
+ms msl_SAPHana_S03_HDB00 rsc_SAPHana_S03_HDB00 \
+    meta is-managed="true" notify="true" clone-max="2" clone-node-max="1" \
+    target-role="Started" interleave="true"
+ 
+primitive rsc_ip_S03_HDB00 ocf:heartbeat:IPaddr2 \ 
+    meta target-role="Started" is-managed="true" \ 
+    operations $id="rsc_ip_S03_HDB00-operations" \ 
+    op monitor interval="10s" timeout="20s" \ 
+    params ip="10.0.0.7"  
+primitive rsc_nc_S03_HDB00 anything \ 
+    params binfile="/usr/bin/nc" cmdline_options="-l -k 62500" \ 
+    op monitor timeout=20s interval=10 depth=0 
+group g_ip_S03_HDB00 rsc_ip_S03_HDB00 rsc_nc_S03_HDB00
+ 
+colocation col_saphana_ip_S03_HDB00 2000: g_ip_S03_HDB00:Started \ 
+    msl_SAPHana_S03_HDB00:Master  
+order ord_SAPHana_S03_HDB00 2000: cln_SAPHanaTopology_S03_HDB00 \ 
+    msl_SAPHana_S03_HDB00
+
+crm configure load update crm-saphana.txt
+
+# Exercise 6
+# Test the deployment
+
+notepad C:\Windows\System32\drivers\etc\hosts
+
+# Task 3 Executing Query in Hana
+
+        CREATE TABLE MYTABLE(id INT, name VARCHAR(10), PRIMARY KEY(id));
+        INSERT INTO MYTABLE(id,name) VALUES(1, 'john');
+        INSERT INTO "MYTABLE"(id,name) VALUES(2, 'doe');
+        INSERT INTO "MYTABLE"(id,name) VALUES(3, 'jane');
+        INSERT INTO "MYTABLE"(id,name) VALUES(4, 'lorem');
+        INSERT INTO "MYTABLE"(id,name) VALUES(5, 'ipsum');
+        SELECT * FROM MYTABLE;
+
+        SELECT DISTINCT 
+    	HOST, PORT, CONNECTION_STATUS 
+    	FROM M_CONNECTIONS 
+    	WHERE CONNECTION_STATUS LIKE 'RUNNING';
+
+
+
+# Task 5 Test a Manual Failover
+
+service pacemaker stop
+
+#Query : Connection Status 
+
+SELECT * FROM MYTABLE;
+ 
+SELECT DISTINCT 
+	HOST, PORT, CONNECTION_STATUS 
+	FROM M_CONNECTIONS 
+	WHERE CONNECTION_STATUS LIKE 'RUNNING';
+
+
+service pacemaker start
+
+#From S03-DB-0
+su - s03adm
+sapcontrol -nr 00 -function StopWait 600 10
+
+
+hdbnsutil -sr_register --remoteHost=s03-db-1 --remoteInstance=00 --replicationMode=syncmem --name=SITEA
+exit
+
+
+crm resource cleanup msl_SAPHana_S03_HDB00 s03-db-0
+
+
+# Task 6 : Test a Migration
+# From s03-db-1
+crm resource migrate msl_SAPHana_S03_HDB00 s03-db-0 
+
+
+crm resource migrate g_ip_S03_HDB00 s03-db-0
+
+su - s03adm
+sapcontrol -nr 00 -function StopWait 600 10
+hdbnsutil -sr_register --remoteHost=s03-db-0 --remoteInstance=00 --replicationMode=memsync --name=SITEB
+exit
+
+#Resource Clean up
+crm resource cleanup msl_SAPHana_S03_HDB00 s03-db-1
+
+#Task 7 : Test Fencing
+ifdown eth0
+
+# From s03-db-0
+su - s03ad
+hdbnsutil -sr_register --remoteHost=s03-db-1 --remoteInstance=00 --replicationMode=memsync --name=SITEA 
+exit
+crm resource cleanup msl_SAPHana_S03_HDB00 s3-db-0
+
+
+
+
+
+		
+		
